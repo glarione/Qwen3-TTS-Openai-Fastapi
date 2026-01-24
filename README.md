@@ -13,19 +13,171 @@
 
 </p>
 
-We release **Qwen3-TTS**, a series of powerful speech generation capabilities developed by Qwen, offering comprehensive support for voice clone, voice design, ultra-high-quality human-like speech generation, and natural language-based voice control. It provides developers and users with the most extensive set of speech generation features available.
+This repository provides an **OpenAI-compatible FastAPI server** for **Qwen3-TTS**, enabling drop-in replacement for OpenAI's TTS API endpoints. Built on top of the powerful Qwen3-TTS model series developed by the Qwen team at Alibaba Cloud, it offers comprehensive support for voice clone, voice design, ultra-high-quality human-like speech generation, and natural language-based voice control.
 
+## ✨ Features
+
+- 🎯 **OpenAI API Compatible** - Drop-in replacement for `POST /v1/audio/speech`
+- 🌐 **Multi-language Support** - 10+ languages (Chinese, English, Japanese, Korean, German, French, Russian, Portuguese, Spanish, Italian)
+- 🎨 **Multiple Voice Options** - 9 premium voices with various gender, age, and dialect combinations
+- 📊 **Multiple Audio Formats** - MP3, Opus, AAC, FLAC, WAV, PCM
+- ⚡ **GPU-Accelerated** - Optimized for CUDA/GPU and CPU deployments
+- 🔧 **Text Sanitization** - Advanced text preprocessing for URLs, emails, special characters
+- 🐳 **Docker Ready** - Multi-stage Dockerfile with GPU and CPU variants
+- 🖥️ **Web Interface** - Dark-themed interactive demo UI
+
+## 🚀 Quick Start (API Server)
+
+### Using OpenAI Python Client
+
+```python
+from openai import OpenAI
+
+# Point to your local Qwen3-TTS server
+client = OpenAI(
+    base_url="http://localhost:8880/v1",
+    api_key="not-needed"  # API key not required for local server
+)
+
+# Generate speech
+response = client.audio.speech.create(
+    model="qwen3-tts",
+    voice="Vivian",  # Or: Ryan, Serena, Dylan, Eric, Aiden, etc.
+    input="Hello! This is Qwen3-TTS speaking with an OpenAI-compatible API.",
+    response_format="mp3",  # Options: mp3, opus, aac, flac, wav, pcm
+    speed=1.0  # 0.25 to 4.0
+)
+
+response.stream_to_file("output.mp3")
+```
+
+### Web Interface
+
+After starting the server, visit `http://localhost:8880` for an interactive web demo:
+
+![Qwen3-TTS Web Interface](https://github.com/user-attachments/assets/cc270f90-2182-44b6-82d5-30aac17360cb)
+
+## 📦 Deployment
+
+### Option 1: Using Conda (Recommended for Development)
+
+```bash
+# Create a fresh conda environment
+conda create -n qwen3-tts python=3.12 -y
+conda activate qwen3-tts
+
+# Install the package with API dependencies
+pip install -e ".[api]"
+
+# Optional: Install FlashAttention 2 for better performance
+pip install -U flash-attn --no-build-isolation
+
+# Start the API server
+python -m api.main
+# Or use the convenience script
+./start_server.sh
+```
+
+The server will start on `http://0.0.0.0:8880` by default.
+
+**Environment Variables:**
+- `HOST` - Server host (default: `0.0.0.0`)
+- `PORT` - Server port (default: `8880`)
+- `WORKERS` - Number of workers (default: `1`)
+- `CORS_ORIGINS` - CORS origins (default: `*`)
+
+### Option 2: Using Docker (GPU-Enabled)
+
+```bash
+# Build and run with GPU support
+docker build -t qwen3-tts-api .
+docker run --gpus all -p 8880:8880 qwen3-tts-api
+
+# Or use Docker Compose for easier management
+docker-compose up qwen3-tts-gpu
+```
+
+### Option 3: Using Docker (CPU-Only)
+
+```bash
+# Build CPU-only variant
+docker build -t qwen3-tts-api-cpu --target cpu-base .
+docker run -p 8880:8880 qwen3-tts-api-cpu
+
+# Or use Docker Compose
+docker-compose --profile cpu up qwen3-tts-cpu
+```
+
+### Docker Compose Configuration
+
+The `docker-compose.yml` includes both GPU and CPU configurations:
+
+```bash
+# GPU-enabled (default)
+docker-compose up qwen3-tts-gpu
+
+# CPU-only (uses profile)
+docker-compose --profile cpu up qwen3-tts-cpu
+
+# Run in background
+docker-compose up -d qwen3-tts-gpu
+
+# View logs
+docker-compose logs -f qwen3-tts-gpu
+
+# Stop services
+docker-compose down
+```
+
+**Model Cache:** Models are cached in `~/.cache/huggingface` and automatically mounted as a volume for persistence.
+
+## 🎯 API Endpoints
+
+- `POST /v1/audio/speech` - Generate speech (OpenAI-compatible)
+- `GET /v1/models` - List available models
+- `GET /v1/voices` - List available voices
+- `GET /docs` - Swagger UI documentation
+- `GET /redoc` - ReDoc documentation
+- `GET /health` - Health check endpoint
+- `GET /` - Web interface
+
+## 🙏 Acknowledgments
+
+This project builds upon the incredible work of the **Qwen Team at Alibaba Cloud**. We are deeply grateful for their development and open-sourcing of [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS), a state-of-the-art text-to-speech model that enables:
+
+- **Powerful Speech Representation** via Qwen3-TTS-Tokenizer-12Hz
+- **Universal End-to-End Architecture** with discrete multi-codebook LM
+- **Extreme Low-Latency Streaming** (as low as 97ms)
+- **Intelligent Voice Control** through natural language instructions
+
+For more details about the underlying Qwen3-TTS models, please refer to:
+- 📑 [Qwen3-TTS Technical Blog](https://qwen.ai/blog?id=qwen3tts-0115)
+- 📄 [Research Paper](https://arxiv.org/abs/2601.15621)
+- 💻 [Original Repository](https://github.com/QwenLM/Qwen3-TTS)
+
+---
 
 ## News
 * 2026.1.22: 🎉🎉🎉 We have released [Qwen3-TTS](https://huggingface.co/collections/Qwen/qwen3-tts) series (0.6B/1.7B) based on Qwen3-TTS-Tokenizer-12Hz. Please check our [blog](https://qwen.ai/blog?id=qwen3tts-0115)!
 
 ## Contents <!-- omit in toc -->
 
+- [✨ Features](#-features)
+- [🚀 Quick Start (API Server)](#-quick-start-api-server)
+  - [Using OpenAI Python Client](#using-openai-python-client)
+  - [Web Interface](#web-interface)
+- [📦 Deployment](#-deployment)
+  - [Option 1: Using Conda (Recommended for Development)](#option-1-using-conda-recommended-for-development)
+  - [Option 2: Using Docker (GPU-Enabled)](#option-2-using-docker-gpu-enabled)
+  - [Option 3: Using Docker (CPU-Only)](#option-3-using-docker-cpu-only)
+  - [Docker Compose Configuration](#docker-compose-configuration)
+- [🎯 API Endpoints](#-api-endpoints)
+- [🙏 Acknowledgments](#-acknowledgments)
 - [Overview](#overview)
   - [Introduction](#introduction)
   - [Model Architecture](#model-architecture)
   - [Released Models Description and Download](#released-models-description-and-download)
-- [Quickstart](#quickstart)
+- [Quickstart (Python Package)](#quickstart-python-package)
   - [Environment Setup](#environment-setup)
   - [Python Package Usage](#python-package-usage)
     - [Custom Voice Generation](#custom-voice-generate)
@@ -101,7 +253,7 @@ huggingface-cli download Qwen/Qwen3-TTS-12Hz-0.6B-Base --local-dir ./Qwen3-TTS-1
 ```
 
 
-## Quickstart
+## Quickstart (Python Package)
 
 ### Environment Setup
 
