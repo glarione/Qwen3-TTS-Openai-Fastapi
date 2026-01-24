@@ -36,7 +36,21 @@ _tts_model = None
 _tts_model_lock = None
 
 
-# Available models
+# Language code to language name mapping
+LANGUAGE_CODE_MAPPING = {
+    "en": "English",
+    "zh": "Chinese",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "de": "German",
+    "fr": "French",
+    "es": "Spanish",
+    "ru": "Russian",
+    "pt": "Portuguese",
+    "it": "Italian",
+}
+
+# Available models (including language-specific variants)
 AVAILABLE_MODELS = [
     ModelInfo(
         id="qwen3-tts",
@@ -58,12 +72,34 @@ AVAILABLE_MODELS = [
     ),
 ]
 
+# Add language-specific model variants
+for lang_code in LANGUAGE_CODE_MAPPING.keys():
+    AVAILABLE_MODELS.extend([
+        ModelInfo(
+            id=f"tts-1-{lang_code}",
+            object="model",
+            created=1737734400,
+            owned_by="qwen",
+        ),
+        ModelInfo(
+            id=f"tts-1-hd-{lang_code}",
+            object="model",
+            created=1737734400,
+            owned_by="qwen",
+        ),
+    ])
+
 # Model name mapping (OpenAI -> internal)
 MODEL_MAPPING = {
     "tts-1": "qwen3-tts",
     "tts-1-hd": "qwen3-tts",
     "qwen3-tts": "qwen3-tts",
 }
+
+# Add language-specific model mappings
+for lang_code in LANGUAGE_CODE_MAPPING.keys():
+    MODEL_MAPPING[f"tts-1-{lang_code}"] = "qwen3-tts"
+    MODEL_MAPPING[f"tts-1-hd-{lang_code}"] = "qwen3-tts"
 
 # OpenAI voice mapping to Qwen voices
 VOICE_MAPPING = {
@@ -74,6 +110,23 @@ VOICE_MAPPING = {
     "onyx": "Evan",
     "shimmer": "Lily",
 }
+
+
+def extract_language_from_model(model_name: str) -> Optional[str]:
+    """
+    Extract language from model name if it has a language suffix.
+    
+    Args:
+        model_name: Model name (e.g., "tts-1-es", "tts-1-hd-fr")
+    
+    Returns:
+        Language name if suffix found, None otherwise
+    """
+    # Check if model ends with a language code
+    for lang_code, lang_name in LANGUAGE_CODE_MAPPING.items():
+        if model_name.endswith(f"-{lang_code}"):
+            return lang_name
+    return None
 
 
 async def get_tts_model():
@@ -211,11 +264,15 @@ async def create_speech(
                 },
             )
         
+        # Extract language from model name if present, otherwise use request language
+        model_language = extract_language_from_model(request.model)
+        language = model_language if model_language else (request.language or "Auto")
+        
         # Generate speech
         audio, sample_rate = await generate_speech(
             text=normalized_text,
             voice=request.voice,
-            language=request.language or "Auto",
+            language=language,
             instruct=request.instruct,
             speed=request.speed,
         )
