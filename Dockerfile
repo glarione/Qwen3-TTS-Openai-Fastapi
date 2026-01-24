@@ -11,6 +11,7 @@ FROM ${BASE_IMAGE} AS base
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV NUMBA_CACHE_DIR=/tmp/numba_cache
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -96,7 +97,8 @@ RUN pip install --no-cache-dir -e .
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash appuser \
-    && chown -R appuser:appuser /app
+    && mkdir -p /tmp/numba_cache \
+    && chown -R appuser:appuser /app /tmp/numba_cache
 USER appuser
 
 # Environment variables
