@@ -51,6 +51,40 @@ response = client.audio.speech.create(
 response.stream_to_file("output.mp3")
 ```
 
+### Language-Specific Models
+
+You can force a specific language by using language-suffixed model names. This overrides any language parameter passed from the client (useful for integration with open-webui):
+
+```python
+# Force Spanish output regardless of language parameter
+response = client.audio.speech.create(
+    model="tts-1-es",  # Spanish
+    voice="Vivian",
+    input="Hola! Este es Qwen3-TTS."
+)
+
+# Force French output
+response = client.audio.speech.create(
+    model="tts-1-hd-fr",  # French (HD quality)
+    voice="Vivian",
+    input="Bonjour! Ceci est Qwen3-TTS."
+)
+```
+
+**Supported Language Codes:**
+- `tts-1-en` or `tts-1-hd-en` - English
+- `tts-1-zh` or `tts-1-hd-zh` - Chinese
+- `tts-1-ja` or `tts-1-hd-ja` - Japanese
+- `tts-1-ko` or `tts-1-hd-ko` - Korean
+- `tts-1-de` or `tts-1-hd-de` - German
+- `tts-1-fr` or `tts-1-hd-fr` - French
+- `tts-1-es` or `tts-1-hd-es` - Spanish
+- `tts-1-ru` or `tts-1-hd-ru` - Russian
+- `tts-1-pt` or `tts-1-hd-pt` - Portuguese
+- `tts-1-it` or `tts-1-hd-it` - Italian
+
+When using these language-specific models, any `language` parameter in the request will be ignored, ensuring consistent output in the specified language.
+
 ### Web Interface
 
 After starting the server, visit `http://localhost:8880` for an interactive web demo:
