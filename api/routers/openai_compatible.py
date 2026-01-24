@@ -5,6 +5,7 @@ OpenAI-compatible router for text-to-speech API.
 Implements endpoints compatible with OpenAI's TTS API specification.
 """
 
+import logging
 import time
 from typing import List, Optional
 
@@ -15,6 +16,15 @@ from fastapi.responses import StreamingResponse
 from ..structures.schemas import OpenAISpeechRequest, ModelInfo, VoiceInfo
 from ..services.text_processing import normalize_text
 from ..services.audio_encoding import encode_audio, get_content_type, DEFAULT_SAMPLE_RATE
+
+# Optional librosa import for speed adjustment
+try:
+    import librosa
+    LIBROSA_AVAILABLE = True
+except ImportError:
+    LIBROSA_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     tags=["OpenAI Compatible TTS"],
@@ -89,7 +99,7 @@ async def get_tts_model():
                         device = "cpu"
                         dtype = torch.float32
                     
-                    print(f"Loading Qwen3-TTS model on {device}...")
+                    logger.info(f"Loading Qwen3-TTS model on {device}...")
                     
                     # Try to load the custom voice model first
                     model_name = "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"
@@ -100,10 +110,10 @@ async def get_tts_model():
                         dtype=dtype,
                     )
                     
-                    print(f"Qwen3-TTS model loaded successfully on {device}")
+                    logger.info(f"Qwen3-TTS model loaded successfully on {device}")
                     
                 except Exception as e:
-                    print(f"Failed to load TTS model: {e}")
+                    logger.error(f"Failed to load TTS model: {e}")
                     raise RuntimeError(f"Failed to initialize TTS model: {e}")
     
     return _tts_model
@@ -155,10 +165,10 @@ async def generate_speech(
         audio = wavs[0]
         
         # Apply speed adjustment if needed
-        if speed != 1.0:
-            # Simple speed adjustment by resampling
-            import librosa
+        if speed != 1.0 and LIBROSA_AVAILABLE:
             audio = librosa.effects.time_stretch(audio.astype(np.float32), rate=speed)
+        elif speed != 1.0:
+            logger.warning("Speed adjustment requested but librosa not available")
         
         return audio, sr
         
@@ -269,6 +279,28 @@ async def get_model(model_id: str):
 @router.get("/voices")
 async def list_voices():
     """List all available voices for text-to-speech."""
+    # Default voices (always available)
+    default_voices = [
+        VoiceInfo(id="Vivian", name="Vivian", language="English", description="Female voice"),
+        VoiceInfo(id="Ryan", name="Ryan", language="English", description="Male voice"),
+        VoiceInfo(id="Sophia", name="Sophia", language="English", description="Female voice"),
+        VoiceInfo(id="Isabella", name="Isabella", language="English", description="Female voice"),
+        VoiceInfo(id="Evan", name="Evan", language="English", description="Male voice"),
+        VoiceInfo(id="Lily", name="Lily", language="English", description="Female voice"),
+    ]
+    
+    # OpenAI-compatible voice aliases
+    openai_voices = [
+        VoiceInfo(id="alloy", name="Alloy", description="OpenAI-compatible voice (maps to Vivian)"),
+        VoiceInfo(id="echo", name="Echo", description="OpenAI-compatible voice (maps to Ryan)"),
+        VoiceInfo(id="fable", name="Fable", description="OpenAI-compatible voice (maps to Sophia)"),
+        VoiceInfo(id="nova", name="Nova", description="OpenAI-compatible voice (maps to Isabella)"),
+        VoiceInfo(id="onyx", name="Onyx", description="OpenAI-compatible voice (maps to Evan)"),
+        VoiceInfo(id="shimmer", name="Shimmer", description="OpenAI-compatible voice (maps to Lily)"),
+    ]
+    
+    default_languages = ["English", "Chinese", "Japanese", "Korean", "German", "French", "Spanish", "Russian", "Portuguese", "Italian"]
+    
     try:
         tts_model = await get_tts_model()
         
@@ -286,38 +318,28 @@ async def list_voices():
             if raw_languages:
                 languages = list(raw_languages)
         
-        # Build voice list
-        voices = []
-        for speaker in speakers:
-            voice_info = VoiceInfo(
-                id=speaker,
-                name=speaker,
-                language=languages[0] if languages else None,
-                description=f"Qwen3-TTS voice: {speaker}",
-            )
-            voices.append(voice_info.model_dump())
-        
-        # Add OpenAI-compatible voice aliases
-        openai_voices = [
-            VoiceInfo(id="alloy", name="Alloy", description="OpenAI-compatible voice (maps to Vivian)"),
-            VoiceInfo(id="echo", name="Echo", description="OpenAI-compatible voice (maps to Ryan)"),
-            VoiceInfo(id="fable", name="Fable", description="OpenAI-compatible voice (maps to Sophia)"),
-            VoiceInfo(id="nova", name="Nova", description="OpenAI-compatible voice (maps to Isabella)"),
-            VoiceInfo(id="onyx", name="Onyx", description="OpenAI-compatible voice (maps to Evan)"),
-            VoiceInfo(id="shimmer", name="Shimmer", description="OpenAI-compatible voice (maps to Lily)"),
-        ]
+        # Build voice list from model if available
+        if speakers:
+            voices = []
+            for speaker in speakers:
+                voice_info = VoiceInfo(
+                    id=speaker,
+                    name=speaker,
+                    language=languages[0] if languages else "Auto",
+                    description=f"Qwen3-TTS voice: {speaker}",
+                )
+                voices.append(voice_info.model_dump())
+        else:
+            voices = [v.model_dump() for v in default_voices]
         
         return {
             "voices": voices + [v.model_dump() for v in openai_voices],
-            "languages": languages,
+            "languages": languages if languages else default_languages,
         }
         
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "error": "server_error",
-                "message": f"Failed to retrieve voice list: {e}",
-                "type": "server_error",
-            },
-        )
+    except Exception:
+        # Return default voices if model is not loaded
+        return {
+            "voices": [v.model_dump() for v in default_voices] + [v.model_dump() for v in openai_voices],
+            "languages": default_languages,
+        }

@@ -39,7 +39,7 @@ VALID_UNITS = {
     # Time
     "s": "second", "ms": "millisecond", "min": "minutes", "h": "hour",
     # Volume
-    "l": "liter", "ml": "mililiter", "cl": "centiliter", "dl": "deciliter",
+    "l": "liter", "ml": "milliliter", "cl": "centiliter", "dl": "deciliter",
     # Speed
     "kph": "kilometer per hour", "mph": "mile per hour", "m/s": "meter per second",
     "km/h": "kilometer per hour",
@@ -90,9 +90,9 @@ EMAIL_PATTERN = re.compile(
 )
 
 URL_PATTERN = re.compile(
-    r"(https?://|www\.|)+(localhost|[a-zA-Z0-9.-]+(\.(?:"
+    r"(https?://|www\.|)+(localhost|[a-zA-Z0-9.-]+(\\.(?:"
     + "|".join(VALID_TLDS)
-    + "))+|[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})(:[0-9]+)?([/?][^\s]*)?",
+    + "))+|[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3})(:[0-9]+)?([/?][^\\s]*)?",
     re.IGNORECASE,
 )
 

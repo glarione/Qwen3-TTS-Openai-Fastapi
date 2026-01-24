@@ -7,6 +7,7 @@ A high-performance TTS API server providing OpenAI-compatible endpoints
 for the Qwen3-TTS model.
 """
 
+import logging
 import os
 import sys
 from contextlib import asynccontextmanager
@@ -16,6 +17,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 # Server configuration
 HOST = os.getenv("HOST", "0.0.0.0")
@@ -46,25 +54,25 @@ async def lifespan(app: FastAPI):
 
 {boundary}
 """
-    print(startup_msg)
-    print(f"Server starting on http://{HOST}:{PORT}")
-    print(f"API Documentation: http://{HOST}:{PORT}/docs")
-    print(f"Web Interface: http://{HOST}:{PORT}/")
-    print(f"{boundary}\n")
+    logger.info(startup_msg)
+    logger.info(f"Server starting on http://{HOST}:{PORT}")
+    logger.info(f"API Documentation: http://{HOST}:{PORT}/docs")
+    logger.info(f"Web Interface: http://{HOST}:{PORT}/")
+    logger.info(boundary)
     
     # Pre-load the TTS model (optional, can be lazy loaded)
     try:
         from .routers.openai_compatible import get_tts_model
-        print("Pre-loading TTS model...")
+        logger.info("Pre-loading TTS model...")
         await get_tts_model()
-        print("TTS model loaded successfully!")
+        logger.info("TTS model loaded successfully!")
     except Exception as e:
-        print(f"Note: Model will be loaded on first request. ({e})")
+        logger.info(f"Note: Model will be loaded on first request. ({e})")
     
     yield
     
     # Cleanup
-    print("Server shutting down...")
+    logger.info("Server shutting down...")
 
 
 # Initialize FastAPI app

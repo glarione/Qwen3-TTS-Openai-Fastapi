@@ -6,10 +6,13 @@ Handles conversion of raw audio to various formats (mp3, opus, aac, flac, wav, p
 """
 
 import io
+import logging
 import struct
 from typing import Literal, Optional
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 AudioFormat = Literal["mp3", "opus", "aac", "flac", "wav", "pcm"]
 
@@ -171,11 +174,11 @@ def encode_audio(
         
     except ImportError:
         # Fall back to WAV if pydub not available
-        print(f"Warning: pydub not available, returning WAV instead of {format}")
+        logger.warning(f"pydub not available, returning WAV instead of {format}")
         return convert_to_wav(audio, sample_rate)
     except Exception as e:
         # Fall back to WAV on any encoding error
-        print(f"Warning: Failed to encode to {format} ({e}), returning WAV")
+        logger.warning(f"Failed to encode to {format} ({e}), returning WAV")
         return convert_to_wav(audio, sample_rate)
 
 
