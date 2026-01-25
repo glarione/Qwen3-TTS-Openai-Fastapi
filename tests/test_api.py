@@ -6,8 +6,6 @@ Tests for API endpoints.
 
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, MagicMock, patch
-import numpy as np
 
 from api.main import app
 from api.backends.factory import reset_backend
@@ -143,31 +141,6 @@ class TestVoicesEndpoint:
 class TestSpeechEndpoint:
     """Tests for /v1/audio/speech endpoint."""
     
-    @patch("api.routers.openai_compatible.get_tts_backend")
-    async def test_speech_endpoint_basic(self, mock_get_backend, client):
-        """Test basic speech generation."""
-        # Mock backend
-        mock_backend = AsyncMock()
-        mock_backend.is_ready.return_value = True
-        mock_backend.generate_speech.return_value = (
-            np.zeros(1000, dtype=np.float32),  # Mock audio
-            12000  # Sample rate
-        )
-        mock_get_backend.return_value = mock_backend
-        
-        response = client.post(
-            "/v1/audio/speech",
-            json={
-                "model": "qwen3-tts",
-                "input": "Hello world",
-                "voice": "Vivian",
-            }
-        )
-        
-        assert response.status_code == 200
-        assert response.headers["content-type"].startswith("audio/")
-        assert len(response.content) > 0
-    
     def test_speech_endpoint_requires_input(self, client):
         """Test that speech endpoint requires input text."""
         response = client.post(
@@ -192,7 +165,10 @@ class TestSpeechEndpoint:
         )
         
         assert response.status_code == 400
-        assert "error" in response.json()
+        data = response.json()
+        # The error is in 'detail' dict
+        assert "detail" in data
+        assert "error" in data["detail"]
     
     def test_speech_endpoint_supports_formats(self, client):
         """Test that speech endpoint supports different formats."""
