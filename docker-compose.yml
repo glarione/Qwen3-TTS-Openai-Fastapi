@@ -8,6 +8,7 @@ services:
       dockerfile: Dockerfile
       target: production
     container_name: qwen3-tts-api
+    network_mode: host
     ports:
       - "8880:8880"
     environment:
@@ -20,7 +21,6 @@ services:
       # When using device_ids filter, the GPU appears as device 0 inside container
       - CUDA_VISIBLE_DEVICES=0
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-      - HF_HUB_OFFLINE=1  # Use local cache only
     volumes:
       # Mount model cache for persistence
       - ~/.cache/huggingface:/home/appuser/.cache/huggingface
@@ -45,6 +45,7 @@ services:
       context: .
       dockerfile: Dockerfile.vllm
     container_name: qwen3-tts-api-vllm
+    network_mode: host
     ports:
       - "8880:8880"
     environment:
@@ -86,6 +87,7 @@ services:
       dockerfile: Dockerfile
       target: cpu-base
     container_name: qwen3-tts-api-cpu
+    network_mode: host
     ports:
       - "8880:8880"
     environment:
