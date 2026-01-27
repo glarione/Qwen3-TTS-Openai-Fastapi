@@ -99,7 +99,7 @@ class OfficialQwen3TTSBackend(TTSBackend):
                     except Exception as cpu_error:
                         raise RuntimeError(f"Failed to load model on CPU: {cpu_error}")
                 else:
-                    raise RuntimeError("Failed to load model with any attention implementation")
+                    raise RuntimeError(f"Failed to load model with any attention implementation. Last error: {last_error}")
 
             # Apply torch.compile() optimization for faster inference
             if torch.cuda.is_available() and hasattr(torch, 'compile'):
