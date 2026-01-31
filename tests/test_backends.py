@@ -161,3 +161,64 @@ class TestBackendInterface:
         assert "gpu_available" in info1
         assert "device" in info2
         assert "gpu_available" in info2
+
+
+class TestVoiceCloningInterface:
+    """Tests for voice cloning interface across all backends."""
+
+    def test_official_backend_has_voice_cloning_methods(self):
+        """Test that official backend has voice cloning methods."""
+        backend = OfficialQwen3TTSBackend()
+        
+        assert hasattr(backend, 'supports_voice_cloning')
+        assert hasattr(backend, 'get_model_type')
+        assert hasattr(backend, 'generate_voice_clone')
+
+    def test_vllm_backend_has_voice_cloning_methods(self):
+        """Test that vLLM backend has voice cloning methods."""
+        backend = VLLMOmniQwen3TTSBackend()
+        
+        assert hasattr(backend, 'supports_voice_cloning')
+        assert hasattr(backend, 'get_model_type')
+
+    def test_customvoice_model_does_not_support_cloning(self):
+        """Test that CustomVoice models don't support voice cloning."""
+        official = OfficialQwen3TTSBackend(model_name="Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice")
+        vllm = VLLMOmniQwen3TTSBackend(model_name="Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice")
+        
+        assert not official.supports_voice_cloning()
+        assert not vllm.supports_voice_cloning()
+        assert official.get_model_type() == "customvoice"
+        assert vllm.get_model_type() == "customvoice"
+
+    def test_base_model_supports_cloning(self):
+        """Test that Base models support voice cloning."""
+        official = OfficialQwen3TTSBackend(model_name="Qwen/Qwen3-TTS-12Hz-1.7B-Base")
+        vllm = VLLMOmniQwen3TTSBackend(model_name="Qwen/Qwen3-TTS-12Hz-1.7B-Base")
+        
+        assert official.supports_voice_cloning()
+        assert vllm.supports_voice_cloning()
+        assert official.get_model_type() == "base"
+        assert vllm.get_model_type() == "base"
+
+    def test_voicedesign_model_does_not_support_cloning(self):
+        """Test that VoiceDesign models don't support voice cloning."""
+        official = OfficialQwen3TTSBackend(model_name="Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign")
+        vllm = VLLMOmniQwen3TTSBackend(model_name="Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign")
+        
+        assert not official.supports_voice_cloning()
+        assert not vllm.supports_voice_cloning()
+
+    def test_vllm_backend_voicedesign_model_type(self):
+        """Test vLLM backend returns correct model type for VoiceDesign."""
+        vllm = VLLMOmniQwen3TTSBackend(model_name="Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign")
+        
+        assert vllm.get_model_type() == "voicedesign"
+
+    def test_model_type_defaults_to_customvoice(self):
+        """Test that default model type is customvoice."""
+        official = OfficialQwen3TTSBackend()
+        vllm = VLLMOmniQwen3TTSBackend()
+        
+        assert official.get_model_type() == "customvoice"
+        assert vllm.get_model_type() == "customvoice"
