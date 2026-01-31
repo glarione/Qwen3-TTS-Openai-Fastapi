@@ -189,6 +189,145 @@ class TestSpeechEndpoint:
             assert request_data["response_format"] == fmt
 
 
+class TestVoiceCloneEndpoints:
+    """Tests for voice cloning endpoints."""
+
+    def test_voice_clone_capabilities_endpoint_returns_valid_structure(self, client, monkeypatch):
+        """Test that voice clone capabilities endpoint returns valid response structure."""
+        from unittest.mock import MagicMock, AsyncMock
+        from api.backends import factory
+        
+        # Create a mock backend that doesn't require model initialization
+        mock_backend = MagicMock()
+        mock_backend.is_ready.return_value = True
+        mock_backend.supports_voice_cloning.return_value = False
+        mock_backend.get_model_type.return_value = "customvoice"
+        
+        # Set the mock as the global backend instance
+        factory._backend_instance = mock_backend
+        
+        response = client.get("/v1/audio/voice-clone/capabilities")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert "supported" in data
+        assert "model_type" in data
+        assert "icl_mode_available" in data
+        assert "x_vector_mode_available" in data
+        assert isinstance(data["supported"], bool)
+        assert isinstance(data["model_type"], str)
+
+    def test_voice_clone_capabilities_custom_voice_not_supported(self, client, monkeypatch):
+        """Test capabilities returns not supported for CustomVoice model."""
+        from unittest.mock import MagicMock
+        from api.backends import factory
+        
+        # Create a mock backend for CustomVoice model
+        mock_backend = MagicMock()
+        mock_backend.is_ready.return_value = True
+        mock_backend.supports_voice_cloning.return_value = False
+        mock_backend.get_model_type.return_value = "customvoice"
+        
+        factory._backend_instance = mock_backend
+        
+        response = client.get("/v1/audio/voice-clone/capabilities")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["supported"] is False
+        assert data["model_type"] == "customvoice"
+        assert data["icl_mode_available"] is False
+        assert data["x_vector_mode_available"] is False
+
+    def test_voice_clone_capabilities_base_model_supported(self, client, monkeypatch):
+        """Test capabilities returns supported for Base model."""
+        from unittest.mock import MagicMock
+        from api.backends import factory
+        
+        # Create a mock backend for Base model
+        mock_backend = MagicMock()
+        mock_backend.is_ready.return_value = True
+        mock_backend.supports_voice_cloning.return_value = True
+        mock_backend.get_model_type.return_value = "base"
+        
+        factory._backend_instance = mock_backend
+        
+        response = client.get("/v1/audio/voice-clone/capabilities")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["supported"] is True
+        assert data["model_type"] == "base"
+        assert data["icl_mode_available"] is True
+        assert data["x_vector_mode_available"] is True
+
+    def test_voice_clone_requires_input(self, client):
+        """Test that voice clone endpoint requires input text."""
+        response = client.post(
+            "/v1/audio/voice-clone",
+            json={
+                "ref_audio": "dGVzdA==",  # base64 "test"
+            }
+        )
+
+        assert response.status_code == 422  # Validation error
+
+    def test_voice_clone_not_supported_returns_400(self, client, monkeypatch):
+        """Test that voice clone returns 400 error when not supported."""
+        from unittest.mock import MagicMock
+        from api.backends import factory
+        
+        # Create a mock backend that doesn't support cloning
+        mock_backend = MagicMock()
+        mock_backend.is_ready.return_value = True
+        mock_backend.supports_voice_cloning.return_value = False
+        mock_backend.get_model_type.return_value = "customvoice"
+        
+        factory._backend_instance = mock_backend
+        
+        response = client.post(
+            "/v1/audio/voice-clone",
+            json={
+                "input": "Hello world",
+                "ref_audio": "dGVzdA==",  # base64 "test"
+                "x_vector_only_mode": True,
+            }
+        )
+
+        assert response.status_code == 400
+        data = response.json()
+        assert "detail" in data
+        assert data["detail"]["error"] == "voice_cloning_not_supported"
+
+    def test_voice_clone_icl_mode_requires_ref_text(self, client, monkeypatch):
+        """Test that voice clone ICL mode requires ref_text."""
+        from unittest.mock import MagicMock
+        from api.backends import factory
+        
+        # Create a mock backend that supports cloning
+        mock_backend = MagicMock()
+        mock_backend.is_ready.return_value = True
+        mock_backend.supports_voice_cloning.return_value = True
+        mock_backend.get_model_type.return_value = "base"
+        
+        factory._backend_instance = mock_backend
+        
+        response = client.post(
+            "/v1/audio/voice-clone",
+            json={
+                "input": "Hello world",
+                "ref_audio": "dGVzdA==",  # base64 "test"
+                "x_vector_only_mode": False,  # ICL mode
+                # ref_text is missing
+            }
+        )
+
+        assert response.status_code == 400
+        data = response.json()
+        assert "detail" in data
+        assert data["detail"]["error"] == "missing_ref_text"
+
+
 class TestRootEndpoint:
     """Tests for root endpoint."""
     

@@ -322,3 +322,23 @@ class VLLMOmniQwen3TTSBackend(TTSBackend):
             logger.warning(f"Could not get device info: {e}")
         
         return info
+
+    def supports_voice_cloning(self) -> bool:
+        """
+        Check if this backend supports voice cloning.
+
+        Voice cloning requires the Base model (Qwen3-TTS-12Hz-1.7B-Base).
+        The CustomVoice model does not support voice cloning.
+        """
+        # Check if we're using the Base model (not CustomVoice)
+        return "Base" in self.model_name and "CustomVoice" not in self.model_name
+
+    def get_model_type(self) -> str:
+        """Return the model type (base, customvoice, or voicedesign)."""
+        if "Base" in self.model_name:
+            return "base"
+        elif "CustomVoice" in self.model_name:
+            return "customvoice"
+        elif "VoiceDesign" in self.model_name:
+            return "voicedesign"
+        return "unknown"
