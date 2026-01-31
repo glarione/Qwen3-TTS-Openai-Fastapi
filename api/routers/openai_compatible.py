@@ -469,7 +469,6 @@ async def create_voice_clone(
             )
 
         # Normalize input text
-        from ..services.text_processing import normalize_text
         normalized_text = normalize_text(request.input, request.normalization_options)
 
         if not normalized_text.strip():
