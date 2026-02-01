@@ -177,7 +177,20 @@ The **Voice Studio** is a comprehensive Gradio-based UI that allows you to creat
 - 🎮 Interactive playground for testing saved profiles
 - 🔄 Manage your voice library (view, load, delete profiles)
 
-**Launch the Voice Studio:**
+**Option 1: Integrated with API Server**
+
+Mount the Voice Studio directly in the API server by setting an environment variable:
+
+```bash
+export ENABLE_VOICE_STUDIO=true
+python -m api.main
+```
+
+Then visit `http://localhost:8880/voice-studio`
+
+**Option 2: Standalone Mode**
+
+Run the Voice Studio as a separate service (on port 7860 by default):
 
 ```bash
 # Standalone mode (runs on port 7860)
@@ -223,6 +236,8 @@ The server will start on `http://0.0.0.0:8880` by default.
 - `TTS_BACKEND` - Backend engine: `official` or `vllm_omni` (default: `official`)
 - `TTS_MODEL_NAME` - Override default model (optional)
 - `TTS_WARMUP_ON_START` - Warmup on startup: `true` or `false` (default: `false`)
+- `ENABLE_VOICE_STUDIO` - Mount Voice Studio at `/voice-studio`: `true` or `false` (default: `false`)
+- `VOICE_LIBRARY_DIR` - Directory for storing voice profiles (default: `./voice_library`)
 
 **Backend Selection:**
 
