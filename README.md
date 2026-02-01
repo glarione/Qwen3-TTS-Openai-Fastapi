@@ -193,15 +193,17 @@ Then visit `http://localhost:8880/voice-studio`
 Run the Voice Studio as a separate service (on port 7860 by default):
 
 ```bash
-# Standalone mode (runs on port 7860)
-qwen-tts-voice-studio
+# Run directly from repository
+python gradio_voice_studio.py
 
 # With custom settings
-qwen-tts-voice-studio --base-url http://localhost:8880 --library-dir ./my_voices --port 7860
+python gradio_voice_studio.py --base-url http://localhost:8880 --library-dir ./my_voices --port 7860
 
-# Or run directly
-python gradio_voice_studio.py
+# If installed via pip (not editable mode)
+qwen-tts-voice-studio
 ```
+
+**Note:** When using editable install (`pip install -e .`), use `python gradio_voice_studio.py` instead of the `qwen-tts-voice-studio` command due to setuptools limitations with py-modules.
 
 The Voice Studio will automatically connect to your running Qwen3-TTS API server to generate audio. Make sure the API server is running before using the Voice Studio.
 
