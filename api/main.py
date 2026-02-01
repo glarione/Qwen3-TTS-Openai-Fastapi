@@ -18,6 +18,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
 
+try:
+    import gradio as gr
+    GRADIO_AVAILABLE = True
+except ImportError:
+    GRADIO_AVAILABLE = False
+    gr = None
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -36,6 +43,10 @@ TTS_WARMUP_ON_START = os.getenv("TTS_WARMUP_ON_START", "false").lower() == "true
 
 # CORS configuration
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
+
+# Voice Studio configuration
+ENABLE_VOICE_STUDIO = os.getenv("ENABLE_VOICE_STUDIO", "false").lower() == "true"
+VOICE_LIBRARY_DIR = Path(os.getenv("VOICE_LIBRARY_DIR", "./voice_library")).resolve()
 
 # Get the directory containing static files
 STATIC_DIR = Path(__file__).parent / "static"
@@ -65,6 +76,8 @@ async def lifespan(app: FastAPI):
     logger.info(f"Server starting on http://{display_host}:{PORT}")
     logger.info(f"API Documentation: http://{display_host}:{PORT}/docs")
     logger.info(f"Web Interface: http://{display_host}:{PORT}/")
+    if ENABLE_VOICE_STUDIO:
+        logger.info(f"Voice Studio: http://{display_host}:{PORT}/voice-studio")
     logger.info(boundary)
     
     # Pre-load the TTS backend
@@ -142,6 +155,32 @@ app.include_router(openai_router, prefix="/v1")
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
+# Mount Voice Studio if enabled
+if ENABLE_VOICE_STUDIO:
+    if not GRADIO_AVAILABLE:
+        logger.warning("Voice Studio enabled but gradio is not installed. Install with: pip install gradio")
+    else:
+        try:
+            # Import gradio_voice_studio from parent directory
+            parent_dir = Path(__file__).parent.parent
+            if str(parent_dir) not in sys.path:
+                sys.path.insert(0, str(parent_dir))
+            
+            from gradio_voice_studio import build_app
+            
+            # Build the Voice Studio app with the current server URL
+            # Use localhost when server is bound to 0.0.0.0, otherwise use the actual host
+            voice_studio_host = "localhost" if HOST == "0.0.0.0" else HOST
+            base_url = f"http://{voice_studio_host}:{PORT}"
+            voice_studio_app = build_app(base_url, VOICE_LIBRARY_DIR)
+            
+            # Mount the Gradio app
+            app = gr.mount_gradio_app(app, voice_studio_app, path="/voice-studio")
+            logger.info(f"Voice Studio mounted at /voice-studio")
+        except Exception as e:
+            logger.warning(f"Failed to mount Voice Studio: {e}")
+            logger.info("Voice Studio can still be run separately with 'qwen-tts-voice-studio'")
+
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
@@ -150,24 +189,29 @@ async def root():
     if index_path.exists():
         return FileResponse(index_path)
     
+    # Build links dynamically
+    voice_studio_link = ""
+    if ENABLE_VOICE_STUDIO and GRADIO_AVAILABLE:
+        voice_studio_link = '<li><a href="/voice-studio">🎙️ Voice Studio</a></li>'
+    
     # Return a simple HTML page if index.html doesn't exist
-    return """
+    return f"""
 <!DOCTYPE html>
 <html>
 <head>
     <title>Qwen3-TTS API</title>
     <style>
-        body { 
+        body {{ 
             font-family: 'Courier New', monospace; 
             background: #1a1a2e; 
             color: #eee; 
             padding: 40px;
             max-width: 800px;
             margin: 0 auto;
-        }
-        pre { color: #00ff88; }
-        a { color: #00aaff; }
-        h1 { color: #fff; }
+        }}
+        pre {{ color: #00ff88; }}
+        a {{ color: #00aaff; }}
+        h1 {{ color: #fff; }}
     </style>
 </head>
 <body>
@@ -183,6 +227,7 @@ async def root():
         <li><a href="/redoc">API Documentation (ReDoc)</a></li>
         <li><a href="/v1/models">List Models</a></li>
         <li><a href="/v1/voices">List Voices</a></li>
+        {voice_studio_link}
     </ul>
 </body>
 </html>

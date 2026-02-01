@@ -29,6 +29,7 @@ This repository provides an **OpenAI-compatible FastAPI server** for **Qwen3-TTS
 - 🔧 **Text Sanitization** - Advanced text preprocessing for URLs, emails, special characters
 - 🐳 **Docker Ready** - Multi-stage Dockerfile with GPU and CPU variants
 - 🖥️ **Web Interface** - Dark-themed interactive demo UI
+- 🎙️ **Voice Studio** - Comprehensive UI for creating, managing, and exporting voice profiles
 
 ### Backend Options
 
@@ -161,6 +162,51 @@ After starting the server, visit `http://localhost:8880` for an interactive web 
 
 ![Qwen3-TTS Web Interface](https://github.com/user-attachments/assets/cc270f90-2182-44b6-82d5-30aac17360cb)
 
+### Voice Studio
+
+The **Voice Studio** is a comprehensive Gradio-based UI that allows you to create, manage, and export reusable voice profiles. It supports three primary workflows:
+
+- **CustomVoice** - Use preset voices with style instructions
+- **VoiceDesign** - Create custom voices using natural language descriptions
+- **Base** - Clone voices from audio samples (with or without transcripts)
+
+**Features:**
+- 🎙️ Create and save voice profiles locally
+- 🎨 Preview generated audio before saving
+- 📦 Export profiles as ZIP archives
+- 🎮 Interactive playground for testing saved profiles
+- 🔄 Manage your voice library (view, load, delete profiles)
+
+**Option 1: Integrated with API Server**
+
+Mount the Voice Studio directly in the API server by setting an environment variable:
+
+```bash
+export ENABLE_VOICE_STUDIO=true
+python -m api.main
+```
+
+Then visit `http://localhost:8880/voice-studio`
+
+**Option 2: Standalone Mode**
+
+Run the Voice Studio as a separate service (on port 7860 by default):
+
+```bash
+# Run directly from repository (recommended for development)
+python gradio_voice_studio.py
+
+# With custom settings
+python gradio_voice_studio.py --base-url http://localhost:8880 --library-dir ./my_voices --port 7860
+
+# If installed via pip install (not editable -e mode)
+qwen-tts-voice-studio
+```
+
+> **Development Note:** When developing with `pip install -e .` (editable mode), the `qwen-tts-voice-studio` command may not work due to setuptools limitations with py-modules in editable installs. In this case, use `python gradio_voice_studio.py` directly. For production or end-user installs with `pip install .`, the command will work correctly.
+
+The Voice Studio will automatically connect to your running Qwen3-TTS API server to generate audio. Make sure the API server is running before using the Voice Studio.
+
 ## 📦 Deployment
 
 ### Option 1: Using Conda (Recommended for Development)
@@ -192,6 +238,8 @@ The server will start on `http://0.0.0.0:8880` by default.
 - `TTS_BACKEND` - Backend engine: `official` or `vllm_omni` (default: `official`)
 - `TTS_MODEL_NAME` - Override default model (optional)
 - `TTS_WARMUP_ON_START` - Warmup on startup: `true` or `false` (default: `false`)
+- `ENABLE_VOICE_STUDIO` - Mount Voice Studio at `/voice-studio`: `true` or `false` (default: `false`)
+- `VOICE_LIBRARY_DIR` - Directory for storing voice profiles (default: `./voice_library`)
 
 **Backend Selection:**
 
@@ -309,6 +357,7 @@ For more details about the underlying Qwen3-TTS models, please refer to:
 - [🚀 Quick Start (API Server)](#-quick-start-api-server)
   - [Using OpenAI Python Client](#using-openai-python-client)
   - [Web Interface](#web-interface)
+  - [Voice Studio](#voice-studio)
 - [📦 Deployment](#-deployment)
   - [Option 1: Using Conda (Recommended for Development)](#option-1-using-conda-recommended-for-development)
   - [Option 2: Using Docker (GPU-Enabled)](#option-2-using-docker-gpu-enabled)
