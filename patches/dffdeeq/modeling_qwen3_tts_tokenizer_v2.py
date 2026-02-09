@@ -198,13 +198,12 @@ class Qwen3TTSTokenizerV2CausalTransConvNet(nn.Module):
         self.conv = nn.ConvTranspose1d(in_channels, out_channels, kernel_size, stride=stride)
 
         pad = kernel_size - stride
-        self.left_pad = 0
-        self.right_pad = int(pad)
+        self.left_pad = math.ceil(pad)
+        self.right_pad = pad = self.left_pad
 
     def forward(self, hidden_state):
         hidden_state = self.conv(hidden_state)
-        if self.right_pad > 0:
-            hidden_state = hidden_state[..., : hidden_state.shape[-1] - self.right_pad]
+        hidden_state = hidden_state[..., self.left_pad : hidden_state.shape[-1] - self.right_pad]
         return hidden_state.contiguous()
 
 
@@ -1194,11 +1193,10 @@ class Qwen3TTSTokenizerV2Model(Qwen3TTSTokenizerV2PreTrainedModel):
 
         """
         return_dict = return_dict if return_dict is not None else self.config.return_dict
-        audio_lengths = (audio_codes[..., 0] > -1).sum(1) * self.decode_upsample_rate
 
-        audio_codes = torch.clamp(audio_codes, min=0)
         audio_values = self.decoder.chunked_decode(audio_codes.transpose(1, 2)).squeeze(1)
 
+        audio_lengths = (audio_codes[..., 0] > 0).sum(1) * self.decode_upsample_rate
         audio_values = [a[:l] for a, l in zip(audio_values, audio_lengths)]
 
         if not return_dict:
