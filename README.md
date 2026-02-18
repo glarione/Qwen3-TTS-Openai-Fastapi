@@ -123,7 +123,7 @@ optimization:
   use_cuda_graphs: true          # CUDA graph capture
   streaming:
     decode_window_frames: 72     # AMD: use 72 (not 64 or 80). NVIDIA: 64 or 80 also work.
-    emit_every_frames: 24        # ~3x redundancy ratio is optimal
+    emit_every_frames: 6         # Lower = lower TTFB, higher RTF cost. See tuning table below.
 ```
 
 See [config.yaml](config.yaml) for all options with comments.
@@ -145,15 +145,22 @@ faster than real-time.
 
 ### Streaming tuning
 
-The `decode_window_frames / emit_every_frames` ratio controls the trade-off between
-latency (TTFB) and throughput (RTF):
+`emit_every_frames` controls the trade-off between latency (TTFB) and throughput (RTF),
+with `decode_window_frames` fixed at 72:
 
-- **~3x redundancy** is optimal (e.g. 72/24, 150/50, 300/100)
-- Smaller windows = lower TTFB at the same ratio
-- RTF is nearly identical regardless of absolute window size at the same ratio
+| Config (window/emit) | TTFB | RTF | RTF overhead vs best |
+|----------------------|------|-----|---------------------|
+| 72/4 | 0.225s | 0.655 | +16% |
+| **72/6** | **~0.3s** | **~0.62** | **~10%** |
+| 72/8 | 0.385s | 0.606 | +7% |
+| 72/12 | 0.546s | 0.576 | +2% |
+| 72/24 | 1.028s | 0.564 | baseline |
 
-AMD ROCm note: `decode_window_frames` values of 64 or less, and exactly 80, trigger
-a CUDA graph capture bug that causes 5-10x slowdown. Use 72 or 84+.
+Lower `emit_every` = lower TTFB but higher RTF cost due to more redundant decoding.
+72/6 is a good balance for real-time voice assistants (Pipecat).
+
+AMD ROCm note: `decode_window_frames` values 66, 67, and 71 trigger a CUDA graph
+capture bug (5-10x slowdown). Use 72. Values 64, 80 also problematic on some setups.
 
 
 ## Voice Assistant Pipeline
