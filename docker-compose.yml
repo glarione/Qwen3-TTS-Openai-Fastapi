@@ -1,25 +1,38 @@
-# Qwen3-TTS — NVIDIA CUDA
-#
-# Usage: docker compose up -d
-# Models are downloaded automatically on first start (~2.4 GB per model).
-# First startup takes ~75s for torch.compile warmup.
-
 services:
-  qwen3-tts:
-    build: .
+  qwen3api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # target: production
+    container_name: qwen3api
+    # network_mode: host
     ports:
       - "8880:8880"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8880
+      - WORKERS=1
+      - CORS_ORIGINS=*
+      - TTS_WARMUP_ON_START=true
+      # - TTS_MODEL_ID=Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice
+      # When using device_ids filter, the GPU appears as device 0 inside container
+      # - CUDA_VISIBLE_DEVICES=0
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     volumes:
+      # Mount model cache for persistence
       - ./voice_library:/root/qwen3-tts/voice_library
-      - models:/root/qwen3-tts/models
+      - /root/.cache/huggingface:/home/appuser/.cache/huggingface:rw
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+              capabilities: [ gpu ]
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8880/health"]
+      interval: 40s
+      timeout: 20s
+      retries: 3
+      start_period: 180s
 
-volumes:
-  models:

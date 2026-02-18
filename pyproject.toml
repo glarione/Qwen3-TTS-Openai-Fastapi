@@ -24,10 +24,10 @@ dependencies = [
   "accelerate==1.12.0",
   "gradio",
   "librosa",
-  "torchaudio",
+  # "torchaudio",
   "soundfile",
   "sox",
-  "onnxruntime",
+  "onnxruntime-gpu",
   "einops",
 ]
 
