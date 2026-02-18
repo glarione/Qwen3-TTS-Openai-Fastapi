@@ -121,7 +121,13 @@ class Qwen3TTSModel:
         processor = AutoProcessor.from_pretrained(pretrained_model_name_or_path, fix_mistral_regex=True,)
 
         generate_defaults = model.generate_config
-        return cls(model=model, processor=processor, generate_defaults=generate_defaults)
+
+        instance = cls(model=model, processor=processor, generate_defaults=generate_defaults)
+        codec = instance.model.speech_tokenizer.model
+        instance.model.speech_tokenizer.model = torch.compile(
+            codec, mode="reduce-overhead", dynamic=True,
+            )
+        return instance
 
     def enable_streaming_optimizations(
         self,

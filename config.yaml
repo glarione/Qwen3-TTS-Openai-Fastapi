@@ -16,11 +16,12 @@ optimization:
   attention: flash_attention_2
   compile_mode: max-autotune
   use_compile: true
-  use_cuda_graphs: true
+  use_cuda_graphs: false
   use_fast_codebook: true
+  compile_talker: false  # with disable it's 0.7RTF
   streaming:
-    decode_window_frames: 72
-    emit_every_frames: 6
+    decode_window_frames: 64
+    emit_every_frames: 4
   compile_codebook_predictor: true
 server:
   host: 0.0.0.0

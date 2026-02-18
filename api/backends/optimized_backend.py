@@ -88,7 +88,9 @@ class OptimizedQwen3TTSBackend:
         self.dtype = torch.bfloat16 if self.device != "cpu" else torch.float32
 
         from qwen_tts import Qwen3TTSModel
-        torch.set_float32_matmul_precision('high')
+        #torch.set_float32_matmul_precision('high')
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
 
         opt = self.config.get("optimization", {})
         attn_impl = opt.get("attention", "flash_attention_2")
