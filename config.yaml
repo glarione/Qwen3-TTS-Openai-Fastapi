@@ -1,10 +1,10 @@
-default_model: 0.6B-Base
+default_model: 1.7B-CustomVoice
 models:
   0.6B-Base:
-    hf_id: /home/pawel/qwen3-tts/models/0.6B-Base
+    hf_id: Qwen/Qwen3-TTS-12Hz-0.6B-Base
     type: base
   0.6B-CustomVoice:
-    hf_id: /home/pawel/qwen3-tts/models/0.6B-CustomVoice
+    hf_id: Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice
     type: customvoice
   1.7B-Base:
     hf_id: Qwen/Qwen3-TTS-12Hz-1.7B-Base
@@ -14,7 +14,7 @@ models:
     type: customvoice
 optimization:
   attention: flash_attention_2
-  compile_mode: max-autotune
+  compile_mode: reduce-overhead
   use_compile: true
   use_cuda_graphs: false
   use_fast_codebook: true

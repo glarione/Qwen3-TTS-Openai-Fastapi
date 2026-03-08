@@ -12,7 +12,8 @@ FROM ${BASE_IMAGE} AS base
 WORKDIR /opt/qwen3-tts
 
 # System dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt update && apt install -y software-properties-common && add-apt-repository -y 'ppa:deadsnakes/ppa'
+RUN apt update && apt-get install -y --no-install-recommends \
   python3.11 \
   python3.11-venv \
   python3.11-dev \
@@ -62,9 +63,6 @@ USER appuser
 
 RUN mkdir -p /home/appuser/qwen3-tts/voice_library
 COPY config.yaml /home/appuser/qwen3-tts/config.yaml
-# Default config location
-RUN mkdir -p /root/qwen3-tts/voice_library
-COPY config.yaml /root/qwen3-tts/config.yaml
 
 ENV TTS_BACKEND=optimized \
     HOST=0.0.0.0 \
@@ -76,4 +74,5 @@ EXPOSE 8880
 HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
     CMD curl -f http://localhost:8880/health || exit 1
 
+ENV NUMBA_CACHE_DIR=/tmp
 CMD ["python", "-m", "api.main"]
