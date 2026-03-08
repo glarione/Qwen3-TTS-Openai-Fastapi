@@ -14,14 +14,15 @@ services:
       - WORKERS=1
       - CORS_ORIGINS=*
       - TTS_WARMUP_ON_START=true
-      # - TTS_MODEL_ID=Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice
+      - TTS_MODEL_ID=Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice
       # When using device_ids filter, the GPU appears as device 0 inside container
       # - CUDA_VISIBLE_DEVICES=0
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     volumes:
       # Mount model cache for persistence
-      - ./voice_library:/root/qwen3-tts/voice_library
-      - /root/.cache/huggingface:/home/appuser/.cache/huggingface:rw
+      - ./voice_library:/home/appuser/qwen3-tts/voice_library
+      - /mnt/network/llm-models/hub:/home/appuser/.cache/huggingface/hub:rw
+      - ./config.yaml:/app/qwen3-tts/config.yaml
     deploy:
       resources:
         reservations:
