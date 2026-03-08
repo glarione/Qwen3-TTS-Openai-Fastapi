@@ -2736,6 +2736,7 @@ class Qwen3TTSForConditionalGeneration(Qwen3TTSPreTrainedModel, GenerationMixin)
         decoded_tail: Optional[np.ndarray] = None
         frames_since_emit = 0
         total_frames_emitted = 0  # Track how many frames we've already emitted audio for
+        first_chunk = True  # Track if we're about to emit the first chunk
 
         for step_idx in range(max_frames):
             # Mark step begin for CUDA graphs to avoid tensor overwrite errors
@@ -2783,8 +2784,18 @@ class Qwen3TTSForConditionalGeneration(Qwen3TTSPreTrainedModel, GenerationMixin)
                 token = torch.argmax(step_logits, dim=-1)
 
             frames_since_emit += 1
-            if frames_since_emit < emit_every_frames:
-                continue
+
+            # For first chunk, wait for more frames to give decoder stable context
+            # This eliminates the "knock" artifact at the start of speech
+            if first_chunk:
+                min_frames_for_stable_start = max(emit_every_frames, decode_window_frames // 2)
+                if frames_since_emit < min_frames_for_stable_start:
+                    continue
+                first_chunk = False
+            else:
+                if frames_since_emit < emit_every_frames:
+                    continue
+
             frames_since_emit = 0
 
             # Decode window of codec frames to PCM
